@@ -1,0 +1,38 @@
+!pip install sentence-transformers pillow
+
+import os
+from PIL import Image
+from sentence_transformers import SentenceTransformer, util
+
+# 1. Load Model (Ini adalah 'otak' yang mengubah gambar jadi Vector)
+model = SentenceTransformer('clip-ViT-B-32')
+
+# 2. Proses Dataset (Proses Data Engineering: Embedding)
+dataset_path = 'dataset/'
+image_names = [f for f in os.listdir(dataset_path) if f.endswith(('.png', '.jpg', '.jpeg'))]
+image_paths = [os.path.join(dataset_path, name) for name in image_names]
+
+# Mengubah semua gambar di folder menjadi Vector (Embeddings)
+dataset_embeddings = model.encode([Image.open(p) for p in image_paths])
+
+print(f"Berhasil memproses {len(image_names)} gambar ke dalam Vector Database.")
+
+# 3. Fungsi Pencarian (Input Gambar Baru/Query)
+def cari_material_mirip(path_gambar_baru):
+    query_embedding = model.encode(Image.open(path_gambar_baru))
+
+    # Menghitung Similarity Score (Cosine Similarity)
+    hits = util.semantic_search(query_embedding, dataset_embeddings, top_k=1)[0]
+
+    # Ambil hasil terbaik
+    best_hit = hits[0]
+    print(f"\nHasil Pencarian untuk: {path_gambar_baru}")
+    print(f"Gambar paling mirip: {image_names[best_hit['corpus_id']]}")
+    print(f"Similarity Score: {best_hit['score']:.4f}") # Menunjukkan jarak vektor
+
+# --- DEMO ---
+# Pastikan Anda upload satu gambar tes (misal: 'tes_botol.jpg') di luar folder dataset
+# cari_material_mirip('tes_botol.jpg')
+
+# Ganti 'tes.png' dengan nama file yang baru Anda upload tadi
+cari_material_mirip('BOTOL_TEST.png')
